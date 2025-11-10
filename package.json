@@ -1,0 +1,13 @@
+{
+  "name": "ChilliDash",
+  "uuid": "88011a16-81ef-47e2-bf0d-163904378bb6",
+  "creator": {
+    "version": "3.8.7",
+    "registry": {
+      "remote": {}
+    },
+    "dependencies": {
+      "localization-editor": "1.0.4"
+    }
+  }
+}
