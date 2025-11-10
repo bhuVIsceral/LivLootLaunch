@@ -2,8 +2,8 @@
   "__version__": "1.0.6",
   "general": {
     "designResolution": {
-      "width": 540,
-      "height": 960,
+      "width": 1080,
+      "height": 1920,
       "fitHeight": true,
       "fitWidth": false
     }
@@ -12,15 +12,15 @@
     "collisionGroups": [
       {
         "index": 1,
-        "name": "PLAYER"
+        "name": "Ball"
       },
       {
         "index": 2,
-        "name": "COLLECTIBLE"
+        "name": "Normal"
       },
       {
         "index": 3,
-        "name": "OBSTACLE"
+        "name": "Booster"
       }
     ],
     "collisionMatrix": {
