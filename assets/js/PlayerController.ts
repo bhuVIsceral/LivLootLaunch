@@ -1,199 +1,129 @@
-import {
-    _decorator,
-    Component,
-    Node,
-    Vec3,
-    Sprite,
-    SpriteFrame,
-    Animation,
-    tween,
-} from "cc";
+import { _decorator, Component, Node, Prefab, instantiate, Vec3, input, Input, EventTouch, Vec2, RigidBody2D, v2 } from "cc";
+import { GameManager, GameState } from "./GameManager";
+import { TrajectoryController } from "./TrajectoryController";
 
-import { AudioManager } from "./AudioManager";
 const { ccclass, property } = _decorator;
 
-// We need to define our lane positions, just like in the old game.
-// In Cocos, the center is 0, so the lanes are negative and positive.
-const LANE_X_POSITIONS = [-160, 0, 160];
-
-@ccclass("PlayerController")
+@ccclass('PlayerController')
 export class PlayerController extends Component {
-    // This is a special Cocos decorator. It makes the 'moveDuration' variable
-    // visible and editable in the Inspector window in the editor!
-    @property({ type: AudioManager }) public audioManager: AudioManager | null = null;
-    @property
-    public moveDuration = 0.25;
-    @property
-    public jumpHeight = 150;
-    @property
-    public jumpDuration = 0.5;
+    @property({ type: Prefab, tooltip: "Drag the Ball prefab here" })
+    ballPrefab: Prefab = null;
 
-    // --- ANIMATION PROPERTIES ---
-    // These properties will appear as slots in the Inspector.
-    // We will drag our SVG images into these slots.
-    @property({ type: SpriteFrame })
-    public runFrame1: SpriteFrame | null = null;
-    @property({ type: SpriteFrame })
-    public runFrame2: SpriteFrame | null = null;
-    @property({ type: SpriteFrame })
-    public jumpFrame: SpriteFrame | null = null;
-    @property
-    public animationInterval = 0.15; // Time between run frame swaps
+    @property({ type: Node, tooltip: "Drag an empty node from the slingshot's center here" })
+    slingshotAnchor: Node = null;
 
-    // These variables will track the player's state.
-    public isJumping = false;    
-    private currentLane = 1; // Start in the middle lane (0=left, 1=middle, 2=right)
-    private isMoving = false; // Prevents starting a new move while one is in progress
-    private startY = 0; // The player's initial Y position
-    private animationTimer = 0;
-    private currentRunFrame = 0;
-    private spriteComponent: Sprite | null = null;
+    @property({ type: TrajectoryController, tooltip: "Drag the Trajectory node here" })
+    trajectory: TrajectoryController = null;
 
+    @property({ tooltip: "Multiplier for the launch force." })
+    launchPower: number = 2.5;
+
+    private currentBall: Node = null;
+    private startDragPos: Vec2 = v2();
+
+    public spawnNewBall() {
+        if (!this.ballPrefab || !this.slingshotAnchor) {
+            console.error("Ball Prefab or Slingshot Anchor not assigned in PlayerController!");
+            return;
+        }
+
+        this.currentBall = instantiate(this.ballPrefab);
+        this.currentBall.active = true;
+        this.node.parent.addChild(this.currentBall);
+        this.currentBall.setWorldPosition(this.slingshotAnchor.getWorldPosition());
+
+        const rb = this.currentBall.getComponent(RigidBody2D);
+        if (rb) {
+            this.scheduleOnce(() => {
+                if (rb && rb.isValid) {
+                    rb.sleep();
+                }
+            }, 0);
+        }
+    }
+    
     onLoad() {
-        // 'onLoad' is a Cocos function that runs once, before 'start'.
-        // It's the perfect place to set up input listeners.
-        // Store the initial Y position to return to after a jump.
-        this.startY = this.node.position.y;
+        this.registerInputEvents();
+        this.trajectory?.hideTrajectory();
+    }
 
-        // Get the Sprite component so we can change the images.
-        this.spriteComponent = this.getComponent(Sprite);
+    onDestroy() {
+        this.unregisterInputEvents();
+    }
+    
+    registerInputEvents() {
+        input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.on(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.on(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.on(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
+    }
+
+    unregisterInputEvents() {
+        input.off(Input.EventType.TOUCH_START, this.onTouchStart, this);
+        input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
+        input.off(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
+    }
+
+    onTouchStart(event: EventTouch) {
+        if (GameManager.instance?.currentState !== GameState.WAITING_FOR_INPUT || !this.currentBall) {
+            return;
+        }
+        GameManager.instance.setGameState(GameState.AIMING);
+        this.startDragPos = event.getUILocation();
+    }
+
+    onTouchMove(event: EventTouch) {
+        if (GameManager.instance?.currentState !== GameState.AIMING || !this.currentBall) {
+            return;
+        }
+
+        const currentDragPos = event.getUILocation();
         
-    }
-
-    // start() {
-    //     // In start, we set up listeners that interact with other engine systems.
-    //     // This is safer because all nodes are guaranteed to be ready.
-    //     input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
-    // }
-
-    // onDestroy() {
-    //     // This is important for preventing memory leaks!
-    //     // We remove the listener when the player object is destroyed.
-    //     input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
-    // }
-
-    // private onKeyDown(event: any) {
-    //     // This function is called every time a key is pressed.
-    //     // Don't allow any new actions while already jumping or sliding.
-    //     if (this.isJumping || this.isMoving) {
-    //         return;
-    //     }
-    //     switch (event.keyCode) {
-    //         case KeyCode.KEY_A:
-    //         case KeyCode.ARROW_LEFT:
-    //             this.moveLeft();
-    //             break;
-    //         case KeyCode.KEY_D:
-    //         case KeyCode.ARROW_RIGHT:
-    //             this.moveRight();
-    //             break;
-    //         case KeyCode.KEY_W:
-    //         case KeyCode.ARROW_UP:
-    //         case KeyCode.SPACE:
-    //             this.jump();
-    //             break;
-    //     }
-    // }
-
-    update(deltaTime: number) {
-        // This function runs every frame. We'll use it to update the animation.
-        this.handleAnimation(deltaTime);
-    }
-
-    private handleAnimation(deltaTime: number) {
-        if (!this.spriteComponent) return;
-
-        if (this.isJumping) {
-            // If jumping, always show the jump frame.
-            this.spriteComponent.spriteFrame = this.jumpFrame;
+        // --- FIX ---
+        // Clone startDragPos so the original is not modified by the subtract operation.
+        const launchVector = this.startDragPos.clone().subtract(currentDragPos);
+        const velocity = v2(launchVector.x, launchVector.y).multiplyScalar(this.launchPower);
+        
+        if (launchVector.lengthSqr() > 100) {
+            this.trajectory?.showTrajectory(this.slingshotAnchor.getWorldPosition(), velocity);
         } else {
-            // If not jumping, handle the running animation.
-            this.animationTimer += deltaTime;
-            if (this.animationTimer >= this.animationInterval) {
-                this.animationTimer = 0;
-                // Swap between frame 0 and 1
-                this.currentRunFrame = 1 - this.currentRunFrame;
-                this.spriteComponent.spriteFrame =
-                    this.currentRunFrame === 0
-                        ? this.runFrame1
-                        : this.runFrame2;
-            }
+            this.trajectory?.hideTrajectory();
         }
     }
 
-    public moveLeft() {
-        // We only move if the player is not already moving and not in the leftmost lane.
-        if (this.isJumping || this.isMoving || this.currentLane === 0) {
+    onTouchEnd(event: EventTouch) {
+        if (GameManager.instance?.currentState !== GameState.AIMING || !this.currentBall) {
             return;
         }
-        this.currentLane--;
-        this.startMoveTween();
-    }
 
-    public moveRight() {
-        // We only move if the player is not already moving and not in the rightmost lane.
-        if (this.isJumping || this.isMoving || this.currentLane === 2) {
+        this.trajectory?.hideTrajectory();
+
+        const endDragPos = event.getUILocation();
+        const launchVector = this.startDragPos.clone().subtract(endDragPos);
+
+        if (launchVector.lengthSqr() < 100) { 
+            GameManager.instance.setGameState(GameState.WAITING_FOR_INPUT);
             return;
         }
-        this.currentLane++;
-        this.startMoveTween();
+
+        GameManager.instance.setGameState(GameState.BALL_IN_PLAY);
+        
+        const rb = this.currentBall.getComponent(RigidBody2D);
+        if (rb) {
+            rb.wakeUp();
+            const velocity = v2(launchVector.x, launchVector.y).multiplyScalar(this.launchPower);
+            // rb.applyLinearImpulseToCenter(velocity, true);
+            rb.linearVelocity = velocity;
+        }
+
+        this.currentBall = null;
     }
 
-    public jump() {
-        if (this.isJumping) return;
-        this.isJumping = true;
-        this.audioManager?.playJumpSfx();
-        // Use a tween to animate the jump.
-        tween(this.node)
-            // Go up
-            .to(
-                this.jumpDuration / 2,
-                {
-                    position: new Vec3(
-                        this.node.position.x,
-                        this.startY + this.jumpHeight,
-                        this.node.position.z
-                    ),
-                },
-                { easing: "cubicOut" }
-            )
-            // Then go down
-            .to(
-                this.jumpDuration / 2,
-                {
-                    position: new Vec3(
-                        this.node.position.x,
-                        this.startY,
-                        this.node.position.z
-                    ),
-                },
-                { easing: "cubicIn" }
-            )
-            // When finished, set isJumping back to false.
-            .call(() => {
-                this.isJumping = false;
-            })
-            .start();
-    }
-
-    private startMoveTween() {
-        this.isMoving = true;
-
-        // Get the target X position from our array
-        const targetX = LANE_X_POSITIONS[this.currentLane];
-
-        // This is the magic of the tween system!
-        tween(this.node)
-            .to(this.moveDuration, {
-                position: new Vec3(
-                    targetX,
-                    this.node.position.y,
-                    this.node.position.z
-                ),
-            })
-            .call(() => {
-                this.isMoving = false;
-            })
-            .start();
+    onTouchCancel(event: EventTouch) {
+        if (GameManager.instance?.currentState === GameState.AIMING) {
+            this.trajectory?.hideTrajectory();
+            GameManager.instance.setGameState(GameState.WAITING_FOR_INPUT);
+        }
     }
 }

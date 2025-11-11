@@ -3,9 +3,9 @@
   "splash-setting": {
     "logo": {
       "type": "custom",
-      "image": "project://settings/whitelogo-hunter.png"
+      "image": "project://settings/logo.png"
     },
-    "totalTime": 500,
-    "displayRatio": 0.5
+    "totalTime": 2000,
+    "displayRatio": 1
   }
 }

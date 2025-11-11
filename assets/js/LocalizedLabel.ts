@@ -39,6 +39,11 @@ export class LocalizedLabel extends Component {
         languageChangeEvent.off('language-changed', this.updateText, this);
     }
 
+    public SetText(_textKey: ETextKey){
+        this.textKey = _textKey;
+        this.updateText();
+    }
+
     private updateText() {
         if (this.label && LocalizationManager.instance) {
             this.label.string = LocalizationManager.instance.getTranslation(this.textKey);

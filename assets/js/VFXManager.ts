@@ -5,17 +5,17 @@ const { ccclass, property } = _decorator;
 @ccclass('VFXManager')
 export class VFXManager extends Component {
 
-    @property({type: Prefab})
-    public hitEffectPrefab: Prefab | null = null;
-    @property({type: Prefab})
-    public collectEffectPrefab: Prefab | null = null;
+    // @property({type: Prefab})
+    // public hitEffectPrefab: Prefab | null = null;
+    // @property({type: Prefab})
+    // public collectEffectPrefab: Prefab | null = null;
 
     private hitPool = new NodePool();
     private collectPool = new NodePool();
 
     onLoad() {
-        this.initPool(this.hitPool, this.hitEffectPrefab, 5);
-        this.initPool(this.collectPool, this.collectEffectPrefab, 10);
+        // this.initPool(this.hitPool, this.hitEffectPrefab, 5);
+        // this.initPool(this.collectPool, this.collectEffectPrefab, 10);
     }
 
     private initPool(pool: NodePool, prefab: Prefab | null, count: number) {
@@ -27,11 +27,11 @@ export class VFXManager extends Component {
     }
 
     public playHitEffect() {
-        this.playEffect(this.hitPool, this.hitEffectPrefab);
+        // this.playEffect(this.hitPool, this.hitEffectPrefab);
     }
 
     public playCollectEffect() {
-        this.playEffect(this.collectPool, this.collectEffectPrefab);
+        // this.playEffect(this.collectPool, this.collectEffectPrefab);
     }
 
     private playEffect(pool: NodePool, prefab: Prefab | null) {

@@ -1,24 +1,22 @@
 import { _decorator, Component, Enum } from 'cc';
 const { ccclass, property } = _decorator;
 
-// This is an enum. It's a special type that lets us create a set of named constants.
-// Cocos Creator will automatically turn this into a dropdown menu in the editor!
+// An enum to define all the object types we care about for collisions.
 export enum EObjectType {
-    None,
-    Chilli,
-    Obstacle,
-    PowerupSpeed,
-    PowerupMagnet,
-    Powerup2x,
-    PowerupShield,
+    NONE = 0,
+    BALL = 1,
+    BLOCK = 2,
+    FLOOR = 7,
+    WALL = 8,
 }
-// This makes the enum available in the editor's "Add Property" menu.
+// This makes the enum available in the Cocos Creator editor's Inspector.
 Enum(EObjectType);
 
 @ccclass('Tagger')
 export class Tagger extends Component {
-    
-    // By making a property of the enum's type, we get a dropdown in the Inspector.
-    @property({ type: EObjectType })
-    public tag: EObjectType = EObjectType.None;
+    @property({ 
+        type: EObjectType, 
+        tooltip: "Assign a specific type to this game object for collision detection." 
+    })
+    public tag: EObjectType = EObjectType.NONE;
 }

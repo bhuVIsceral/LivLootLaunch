@@ -21,14 +21,28 @@
       {
         "index": 3,
         "name": "Booster"
+      },
+      {
+        "index": 4,
+        "name": "Wall"
+      },
+      {
+        "index": 5,
+        "name": "Floor"
       }
     ],
     "collisionMatrix": {
       "0": 1,
-      "1": 12,
+      "1": 60,
       "2": 2,
-      "3": 2
-    }
+      "3": 2,
+      "4": 2,
+      "5": 2
+    },
+    "gravity": {
+      "y": 0
+    },
+    "defaultMaterial": "89434cea-7eb5-4ef1-9723-d25e5df967d1"
   },
   "custom_joint_texture_layouts": []
 }
