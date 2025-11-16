@@ -1,6 +1,7 @@
-import { _decorator, Component, Node, Prefab, instantiate, Vec3, input, Input, EventTouch, Vec2, RigidBody2D, v2 } from "cc";
+import { _decorator, Component, Node, Prefab, instantiate, Vec3, input, Input, EventTouch, Vec2, RigidBody2D, v2, v3, Camera, director } from "cc";
 import { GameManager, GameState } from "./GameManager";
 import { TrajectoryController } from "./TrajectoryController";
+import { SlingshotVisuals } from "./SlingshotVisuals";
 
 const { ccclass, property } = _decorator;
 
@@ -12,6 +13,9 @@ export class PlayerController extends Component {
     @property({ type: Node, tooltip: "Drag an empty node from the slingshot's center here" })
     slingshotAnchor: Node = null;
 
+    @property({ type: SlingshotVisuals, tooltip: "The script that draws the slingshot bands." })
+    slingshotVisuals: SlingshotVisuals = null;
+
     @property({ type: TrajectoryController, tooltip: "Drag the Trajectory node here" })
     trajectory: TrajectoryController = null;
 
@@ -20,11 +24,16 @@ export class PlayerController extends Component {
 
     private currentBall: Node = null;
     private startDragPos: Vec2 = v2();
+    private mainCamera: Camera = null; // Main camera for coordinate conversion
 
     public spawnNewBall() {
         if (!this.ballPrefab || !this.slingshotAnchor) {
             console.error("Ball Prefab or Slingshot Anchor not assigned in PlayerController!");
             return;
+        }
+
+        if (this.currentBall) {
+            this.currentBall.destroy();
         }
 
         this.currentBall = instantiate(this.ballPrefab);
@@ -45,6 +54,7 @@ export class PlayerController extends Component {
     onLoad() {
         this.registerInputEvents();
         this.trajectory?.hideTrajectory();
+        this.mainCamera = director.getScene()?.getComponentInChildren(Camera);
     }
 
     onDestroy() {
@@ -70,6 +80,7 @@ export class PlayerController extends Component {
             return;
         }
         GameManager.instance.setGameState(GameState.AIMING);
+        this.slingshotVisuals?.startAim(this.currentBall);
         this.startDragPos = event.getUILocation();
     }
 
@@ -84,6 +95,17 @@ export class PlayerController extends Component {
         // Clone startDragPos so the original is not modified by the subtract operation.
         const launchVector = this.startDragPos.clone().subtract(currentDragPos);
         const velocity = v2(launchVector.x, launchVector.y).multiplyScalar(this.launchPower);
+
+        // this.slingshotVisuals?.updateDragPosition();
+
+        //  // Move the ball to follow the drag
+        // if (this.currentBall && this.mainCamera) {
+        //     const worldPos = v3();
+        //     // Convert clamped screen pos back to world pos
+        //     this.mainCamera.screenToWorld(v3(currentDragPos.x, currentDragPos.y, 0), worldPos);
+        //     this.currentBall.setWorldPosition(worldPos);
+        // }
+        // // ----------------------
         
         if (launchVector.lengthSqr() > 100) {
             this.trajectory?.showTrajectory(this.slingshotAnchor.getWorldPosition(), velocity);
@@ -98,12 +120,16 @@ export class PlayerController extends Component {
         }
 
         this.trajectory?.hideTrajectory();
+        this.slingshotVisuals?.endAim();
 
         const endDragPos = event.getUILocation();
         const launchVector = this.startDragPos.clone().subtract(endDragPos);
 
         if (launchVector.lengthSqr() < 100) { 
             GameManager.instance.setGameState(GameState.WAITING_FOR_INPUT);
+            if (this.currentBall) {
+                this.currentBall.setWorldPosition(this.slingshotAnchor.getWorldPosition());
+            }
             return;
         }
 
@@ -123,6 +149,7 @@ export class PlayerController extends Component {
     onTouchCancel(event: EventTouch) {
         if (GameManager.instance?.currentState === GameState.AIMING) {
             this.trajectory?.hideTrajectory();
+            this.slingshotVisuals?.endAim();
             GameManager.instance.setGameState(GameState.WAITING_FOR_INPUT);
         }
     }

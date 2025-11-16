@@ -24,6 +24,10 @@ export enum ETextKey {
     POWERUP_3_DESC,
     POWERUP_4_TITLE,
     POWERUP_4_DESC,
+    x5,
+    x4,
+    TAP_QR,
+    EMPTY,
 }
 
 // This is our translation database.
@@ -52,6 +56,10 @@ export const localizationData = {
         [ETextKey.POWERUP_3_DESC]: "2x Multiplier",
         [ETextKey.POWERUP_4_TITLE]: "Livionaire",
         [ETextKey.POWERUP_4_DESC]: "10x Coins",
+        [ETextKey.x5]: "5",
+        [ETextKey.x4]: "4",
+        [ETextKey.TAP_QR]: "Tap to download!",
+        [ETextKey.EMPTY]: "",
     },
     'ar': {
         [ETextKey.ENGLISH]: "ENGLISH",
@@ -76,5 +84,9 @@ export const localizationData = {
         [ETextKey.POWERUP_3_DESC]: "مضاعف 2X",
         [ETextKey.POWERUP_4_TITLE]: "ليفيونيير",
         [ETextKey.POWERUP_4_DESC]: "10 عملات معدنية",
+        [ETextKey.x5]: "٥",
+        [ETextKey.x4]: "٤",
+        [ETextKey.TAP_QR]: "انقر للتحميل!",
+        [ETextKey.EMPTY]: "",
     }
 };

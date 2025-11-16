@@ -45,7 +45,7 @@
     "_lpos": {
       "__type__": "cc.Vec3",
       "x": 0,
-      "y": 0,
+      "y": -660.157,
       "z": 0
     },
     "_lrot": {
@@ -85,8 +85,8 @@
     },
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 75,
-      "height": 75
+      "width": 150,
+      "height": 150
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -201,7 +201,7 @@
       "x": 0,
       "y": 0
     },
-    "_radius": 37.5,
+    "_radius": 75,
     "_id": ""
   },
   {
@@ -239,6 +239,7 @@
     "__prefab": {
       "__id__": 13
     },
+    "maxBounces": 1,
     "_id": ""
   },
   {
@@ -253,8 +254,6 @@
     "asset": {
       "__id__": 0
     },
-    "fileId": "48XNT+vqlNyYCrCeGWkIar",
-    "instance": null,
-    "targetOverrides": null
+    "fileId": "48XNT+vqlNyYCrCeGWkIar"
   }
 ]

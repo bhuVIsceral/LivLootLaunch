@@ -19,6 +19,9 @@ export class LocalizedLabel extends Component {
     @property()
     private defaultFontSize: number = 20;
 
+    @property
+    private fontSizeMultiplayer: number = 1.5;
+
     private label: Label | null = null;
 
     onLoad() {
@@ -47,8 +50,8 @@ export class LocalizedLabel extends Component {
     private updateText() {
         if (this.label && LocalizationManager.instance) {
             this.label.string = LocalizationManager.instance.getTranslation(this.textKey);
-            this.label.fontSize = this.defaultFontSize * LocalizationManager.instance.getFontSizeMultiplayer();
             if(this.updateHorizontalAlign) this.label.horizontalAlign = LocalizationManager.instance.getHorizontalAlign();
+            if(LocalizationManager.instance.getCurrentLanguage() === 'ar') this.label.fontSize = this.defaultFontSize * this.fontSizeMultiplayer;
         }
     }
 }

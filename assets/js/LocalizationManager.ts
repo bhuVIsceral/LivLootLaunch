@@ -45,7 +45,21 @@ export class LocalizationManager extends Component {
     }
 
     public getTranslation(key: ETextKey): string {
-        return localizationData[this.currentLanguage][key] || '...';
+        const langData = localizationData[this.currentLanguage];
+        if (!langData) {
+            console.warn(`Translation data for language '${this.currentLanguage}' not found.`);
+            return `MISSING_LANG: ${key}`;
+        }
+        
+        // 2. Check if the key (e.g., '16') exists in that language
+        const translation = langData[key];
+        if (translation === undefined || translation === null) {
+            console.warn(`Missing translation for key: ${key} in language: ${this.currentLanguage}`);
+            return `MISSING_KEY: ${key}`;
+        }
+        
+        return translation;
+        // return localizationData[this.currentLanguage][key] || '';
     }
 
     public getHorizontalAlign(): number {

@@ -46,10 +46,13 @@ export class BallController extends Component {
                 const blockController1 = otherCollider.getComponent(BlockController); 
                 blockController1?.onHit();
 
+                if (blockController1?.getBlockType() === EBlockType.STONE) 
+                    this.maxBounces = 0;
+
                 if (blockController1?.getBlockType() === EBlockType.BOOSTER_DOUBLE_BOUNCE) 
                     this.maxBounces++;
 
-                if(blockController1.isBooster === true )this.handleBounce();
+                if(blockController1.isCollidable === true )this.handleBounce();
                 break;
         }
     }
@@ -65,12 +68,15 @@ export class BallController extends Component {
     private killBall() {
         // Ensure this logic only runs once
         if (!this.node.active) return; 
-
-        this.node.active = false; 
-        GameManager.instance?.onBallOutOfBounds();
         
         this.scheduleOnce(() => {
-            this.node.destroy();
+            if (!this.node) return; // Node might be destroyed already
+            this.node.active = false; 
+            GameManager.instance?.onBallOutOfBounds();
+            
+            this.scheduleOnce(() => {
+                this.node.destroy();
+            }, 0);
         }, 0);
     }
 }

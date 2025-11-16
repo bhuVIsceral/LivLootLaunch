@@ -17,7 +17,7 @@ export class BlockRow {
 }
 
 // An enum to help with our type-checking logic
-enum EConfigType { NORMAL, BOOSTER }
+enum EConfigType { NORMAL, BOOSTER, STONE }
 
 @ccclass('LevelController')
 export class LevelController extends Component {
@@ -43,6 +43,12 @@ export class LevelController extends Component {
     })
     boosterBlockConfigs: BlockConfig[] = [];
 
+    @property({
+        type: [BlockConfig],
+        tooltip: "The list of available 'Booster Block' configurations to choose from."
+    })
+    stoneBlockConfigs: BlockConfig[] = [];
+
     start() {
         this.generateLevel();
     }
@@ -52,7 +58,7 @@ export class LevelController extends Component {
             error("No rows assigned to LevelController rowLayout!");
             return;
         }
-        if (this.normalBlockConfigs.length === 0 || this.boosterBlockConfigs.length === 0) {
+        if (this.normalBlockConfigs.length === 0 || this.boosterBlockConfigs.length === 0 || this.stoneBlockConfigs.length === 0) {
             error("Block configs are not assigned in LevelController!");
             return;
         }
@@ -61,6 +67,7 @@ export class LevelController extends Component {
         const allBlocks: BlockController[] = [];
         for (const row of this.rowLayout) {
             allBlocks.push(...row.blocks);
+            console.log("No of Blocks : " + allBlocks.length);
         }
 
         for (const block of allBlocks) {
@@ -69,6 +76,7 @@ export class LevelController extends Component {
         
         const normalBlockCount = this.normalBlockConfigs.length;
         const boosterBlockCount = this.boosterBlockConfigs.length;
+        const stoneBlockCount = this.stoneBlockConfigs.length;
         const totalBlocksToSpawn = normalBlockCount + boosterBlockCount;
 
         if (totalBlocksToSpawn > allBlocks.length) {
@@ -79,11 +87,13 @@ export class LevelController extends Component {
         // --- 2. Create config decks (of actual configs) ---
         const normalConfigsToAssign = this.shuffleArray([...this.normalBlockConfigs]);
         const boosterConfigsToAssign = this.shuffleArray([...this.boosterBlockConfigs]);
+        const stoneConfigsToAssign = this.shuffleArray([...this.stoneBlockConfigs]);
 
         // --- 3. Create a "type deck" to shuffle ---
         const typeDeck: EConfigType[] = [];
         for (let i = 0; i < normalBlockCount; i++) typeDeck.push(EConfigType.NORMAL);
         for (let i = 0; i < boosterBlockCount; i++) typeDeck.push(EConfigType.BOOSTER);
+        for (let i = 0; i < stoneBlockCount; i++) typeDeck.push(EConfigType.STONE);
 
         // --- 4. Constrained Shuffle ---
         // Shuffle the deck until it meets our adjacency rule.
@@ -100,7 +110,7 @@ export class LevelController extends Component {
         if (attempts >= maxAttempts) {
             console.warn("Could not find a valid block layout after 100 attempts. Using last layout (may be invalid).");
         }
-
+        
         // --- 5. Assign configs to the blocks based on the validated type deck ---
         for (let i = 0; i < allBlocks.length; i++) {
             // Stop if we've assigned all the blocks we intended to
@@ -109,6 +119,7 @@ export class LevelController extends Component {
                 continue;
             }
 
+            console.log("currentBlock : " + i);
             const block = allBlocks[i];
             const type = typeDeck[i];
             let config: BlockConfig = null;
@@ -117,12 +128,17 @@ export class LevelController extends Component {
                 config = boosterConfigsToAssign.pop();
             } else if (type === EConfigType.NORMAL && normalConfigsToAssign.length > 0) {
                 config = normalConfigsToAssign.pop();
+            } else if (type === EConfigType.STONE && stoneConfigsToAssign.length > 0) {
+                config = stoneConfigsToAssign.pop();
             } else {
                 // Failsafe in case of mismatch: try to pull from the other deck
                 config = (type === EConfigType.BOOSTER ? normalConfigsToAssign.pop() : boosterConfigsToAssign.pop());
             }
 
+            if(config === null) config = stoneConfigsToAssign.pop();
+            
             if (config) {
+                console.log(config.type);
                 block.resetBlock(); // Make it active
                 block.setupBlock(config); // Configure it
                 GameManager.instance?.registerBlock(block);

@@ -1,4 +1,4 @@
-import { _decorator, Component, Label, Sprite, SpriteFrame, Enum, CircleCollider2D, BoxCollider2D, RigidBody2D, PhysicsGroup } from "cc";
+import { _decorator, Component, Label, Sprite, SpriteFrame, Enum, CircleCollider2D, BoxCollider2D, RigidBody2D, PhysicsGroup, UIOpacity } from "cc";
 import { GameManager } from './GameManager';
 import { LocalizedLabel } from "./LocalizedLabel";
 import { ETextKey } from "./LocalizationData";
@@ -16,7 +16,8 @@ export enum EBlockType {
     BOOSTER_COIN_MAGNET,
     BOOSTER_DOUBLE_BOUNCE,
     BOOSTER_2X_MULTIPLIER,
-    BOOSTER_EXTRA_COINS
+    BOOSTER_EXTRA_COINS,
+    STONE
 }
 // Make the enum available in the Inspector
 Enum(EBlockType);
@@ -47,7 +48,7 @@ export class BlockConfig {
     health: number = 20;
 
     @property({ tooltip: "Is this block a booster type?" })
-    isBooster: boolean = false;
+    isCollidable: boolean = false;
 }
 
 // 3. The main BlockController component
@@ -56,6 +57,9 @@ export class BlockController extends Component {
 
     @property({ type: EBlockType, tooltip: "The type of this block." })
     blockType: EBlockType = EBlockType.NORMAL_COFFEE;
+
+    @property({type: [Component]})
+    public neighbours : BlockController[] = [];
 
     @property(Sprite)
     iconSprite: Sprite = null;
@@ -82,7 +86,7 @@ export class BlockController extends Component {
     rigidBody: RigidBody2D = null;
 
     @property()
-    isBooster: boolean = true;
+    isCollidable: boolean = true;
 
     // Internal state
     private health: number = 0;    
@@ -91,25 +95,28 @@ export class BlockController extends Component {
      * This public method is called by the LevelController to initialize the block.
      */
     public setupBlock(config: BlockConfig) {
+        // this.titleLabel.string = config.titleTextKey != ETextKey.EMPTY ? config.title : "";
+        // this.descriptionLabel.string = config.description != "" ? config.description : "";
+        console.log(config.type);
         this.blockType = config.type;
-        this.titleLabel.string = config.title != "" ? config.title : "";
-        this.descriptionLabel.string = config.description != "" ? config.description : "";
         this.health = config.health;
-        this.isBooster = config.isBooster;
+        this.isCollidable = config.isCollidable;
         // this.collider.sensor = !config.isBooster; // Boosters aren't sensors
-        if(config.isBooster === false)
+        if(config.isCollidable === false)
         {
             this.collider.group = 4; // Example group for boosters
             this.collider.sensor = true;
         }
-        // else{
-        //     this.titleLabelLocalized.enabled = true;
-        //     this.descriptionLabelLocalized.enabled = true;
-        //     this.titleLabelLocalized.SetText(config.titleTextKey);
-        //     this.descriptionLabelLocalized.SetText(config.descriptionTextKey);
+        else{
+            this.titleLabelLocalized.enabled = true;
+            this.descriptionLabelLocalized.enabled = true;
+            this.titleLabelLocalized.SetText(config.titleTextKey);
+            this.descriptionLabelLocalized.SetText(config.descriptionTextKey);
+            this.titleLabel.getComponent(UIOpacity).opacity = 255;
+            this.descriptionLabel.getComponent(UIOpacity).opacity = 255;
             // this.collider.group = 3; // Example group for normal blocks
             // this.collider.sensor = false;
-        // }
+        }
         // this.collider.group = config.isBooster === true ? 3 : 2; // Example groups
         this.collider.apply(); // Apply changes to the collider
         this.rigidBody.group = this.collider.group;
@@ -122,14 +129,69 @@ export class BlockController extends Component {
     }
 
     public onHit() {
-        GameManager.instance?.blockDestroyed(this, this.health, this.node.getPosition());
+        if (!this.node.active) return;
         this.node.active = false; // Deactivate instead of destroying
+        GameManager.instance?.blockDestroyed(this, this.health, this.node.getPosition());
+        this.scheduleOnce(this.activateBoosterEffect, 0);
     }
 
+    /**
+     * --- FILLED IN ---
+     * Checks the block's type and activates any special power-up.
+     */
+    private activateBoosterEffect() {
+        switch (this.blockType) {
+            
+            // Example 1: Destroy all neighbors
+            case EBlockType.BOOSTER_COIN_MAGNET: 
+            case EBlockType.BOOSTER_EXTRA_COINS: // e.g. "Livionaire 10x Coins"
+                console.log("BOOSTER: Destroying neighbors!");
+                for (const neighbor of this.neighbours) {
+                    // Check if the neighbor exists and is still active
+                    if (neighbor && neighbor.node.active) {
+                        neighbor.getComponent(BlockController).onHit(); // This creates a chain reaction
+                    }
+                }
+                break;
+            
+            // Example 2: Multiply score of all neighbors
+            case EBlockType.BOOSTER_2X_MULTIPLIER:
+                console.log("BOOSTER: Multiplying neighbor scores!");
+                for (const neighbor of this.neighbours) {
+                    if (neighbor && neighbor.node.active) {
+                        neighbor.getComponent(BlockController).multiplyScore(2); // Call the new multiply function
+                    }
+                }
+                break;
+
+            case EBlockType.BOOSTER_DOUBLE_BOUNCE:
+                // This power-up is handled by the BallController,
+                // so the block does nothing special here.
+                break;
+
+            // case EBlockType.NORMAL:
+            default:
+                // Not a booster, do nothing.
+                break;
+        }
+    }
+
+    /**
+     * --- FILLED IN ---
+     * Multiplies this block's score value.
+     */
+    public multiplyScore(multiplier: number) {
+        if (!this.node.active) return; // Can't multiply a destroyed block
+
+        this.health *= multiplier;
+        this.updateHealthLabel(); // Update the UI to show the new, higher score
+    }
+    
     private updateHealthLabel() {
         if (this.healthLabel) {
             this.healthLabel.string = this.health.toString();
         }
+        if(this.health === 0) this.healthLabel.getComponent(UIOpacity).opacity = 0;
     }
 
     // Call this from LevelController to reset the level

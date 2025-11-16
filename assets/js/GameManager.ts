@@ -83,6 +83,7 @@ export class GameManager extends Component {
     }
 
     start() {
+        console.log("Restart");
         this.setupMuteButton();
         this.setupLanguageButtons();
 
@@ -226,12 +227,12 @@ export class GameManager extends Component {
         this.currentLives--;
         this.updateUI();
         if (this.currentLives <= 0) {
-            this.gameOver(false); // Lose
+            this.scheduleOnce(() => this.gameOver(false), 2);
         } else {
             // --- FIX ---
             // Don't change state immediately. Schedule it for the next frame.
             // This prevents physics race conditions.
-            this.scheduleOnce(this.prepareNextTurn, 0);
+            this.scheduleOnce(this.prepareNextTurn, 1);
         }
     }
 
@@ -252,7 +253,7 @@ export class GameManager extends Component {
         // TODO: Add bonus score based on block.getBlockType()
         
         if (this.totalBlocks <= 0) {
-            this.gameOver(true); // Win
+            this.scheduleOnce(() => this.gameOver(true), 2);
         }
     }
 
@@ -342,8 +343,10 @@ export class GameManager extends Component {
     }
 
     public restartGame() {
+        console.log("GAME Reload");
+        director.resume();
         // Reloading the scene is the cleanest way to restart
-        director.loadScene("LivLootLaunch");
+        director.loadScene(director.getScene().name);
     }
 }
 

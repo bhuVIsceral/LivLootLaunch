@@ -1,4 +1,5 @@
 import { _decorator, Component, Enum } from 'cc';
+import { BlockController } from './BlockController';
 const { ccclass, property } = _decorator;
 
 // An enum to define all the object types we care about for collisions.

@@ -1,4 +1,6 @@
 import { _decorator, Component, Node, Prefab, instantiate, Vec3, Vec2, v2, v3, PhysicsSystem2D, UITransform, ERaycast2DType, Collider2D, find } from 'cc';
+import { Tagger, EObjectType } from './Tagger';
+import { BlockController, EBlockType } from './BlockController';
 
 const { ccclass, property } = _decorator;
 
@@ -15,7 +17,7 @@ export class TrajectoryController extends Component {
     timeStep: number = 0.08;
 
     @property({ tooltip: "Maximum number of bounces to predict." })
-    maxBounces: number = 3;
+    maxBounces: number = 1;
 
     @property({
         type: Number,
@@ -76,6 +78,9 @@ export class TrajectoryController extends Component {
         let currentPos = v2(startPos.x, startPos.y);
         let currentVel = velocity.clone();
         let bounces = 0;
+        let currentMaxBounces = this.maxBounces; // Start with the default
+        let pathLength = 0;
+        const maxDrawDistance = 1000; // Failsafe distance
 
         for (let i = 0; i < this.maxPoints; i++) {
             // Calculate the potential end position for this time step
@@ -87,12 +92,31 @@ export class TrajectoryController extends Component {
             if (results.length > 0) {
                 const hit = results[0];
                 const hitPoint = hit.point;
-                
+                const hitCollider = hit.collider;
+
+                const tagger = hitCollider.getComponent(Tagger);
+
+                if (tagger && tagger.tag === EObjectType.BLOCK) {
+                    const block = hitCollider.getComponent(BlockController);
+                    const blockType = block?.getBlockType();
+
+                    if (blockType === EBlockType.STONE) {
+                        // HIT A STONE BLOCK: Place dot and stop simulation.
+                        this.placeDot(i, v3(hitPoint.x, hitPoint.y, 0));
+                        break; // Stop trajectory
+                    } 
+                    else if (blockType === EBlockType.BOOSTER_DOUBLE_BOUNCE) {
+                        // HIT A BOOSTER: Add to the simulation's bounce limit
+                        currentMaxBounces++;
+                    }
+                    // For NORMAL blocks, we just fall through to the bounce logic.
+                }
+
                 // Place the dot at the point of collision
                 this.placeDot(i, v3(hitPoint.x, hitPoint.y, 0));
                 
                 bounces++;
-                if (bounces >= this.maxBounces) {
+                if (bounces >= currentMaxBounces) {
                     break; // Stop simulation after max bounces
                 }
 
@@ -113,7 +137,9 @@ export class TrajectoryController extends Component {
             }
 
             // Apply gravity to the velocity for the next step's calculation
-            currentVel.add(this.gravity.clone().multiplyScalar(this.timeStep));
+            if (this.gravity.lengthSqr() > 0) {
+                currentVel.add(this.gravity.clone().multiplyScalar(this.timeStep));
+            }
         }
     }
 
