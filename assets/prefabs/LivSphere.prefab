@@ -239,7 +239,7 @@
     "__prefab": {
       "__id__": 13
     },
-    "maxBounces": 1,
+    "maxBounces": 0,
     "_id": ""
   },
   {
@@ -254,6 +254,8 @@
     "asset": {
       "__id__": 0
     },
-    "fileId": "48XNT+vqlNyYCrCeGWkIar"
+    "fileId": "48XNT+vqlNyYCrCeGWkIar",
+    "instance": null,
+    "targetOverrides": null
   }
 ]
