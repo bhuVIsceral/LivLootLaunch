@@ -1,12 +1,17 @@
-import { _decorator, Component, Node, Prefab, instantiate, Vec3, input, Input, EventTouch, Vec2, RigidBody2D, v2, v3, Camera, director } from "cc";
+import { _decorator, Component, Node, Prefab, instantiate, Vec3, input, Input, EventTouch, Vec2, RigidBody2D, v2, v3, Camera, director, UITransform } from "cc";
 import { GameManager, GameState } from "./GameManager";
 import { TrajectoryController } from "./TrajectoryController";
 import { SlingshotVisuals } from "./SlingshotVisuals";
+import { AudioManager } from "./AudioManager";
 
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerController')
 export class PlayerController extends Component {
+
+    @property({type: AudioManager})
+    audioManager : AudioManager = null;
+
     @property({ type: Prefab, tooltip: "Drag the Ball prefab here" })
     ballPrefab: Prefab = null;
 
@@ -22,9 +27,11 @@ export class PlayerController extends Component {
     @property({ tooltip: "Multiplier for the launch force." })
     launchPower: number = 2.5;
 
+    @property({ type: Camera, tooltip: "The main game camera used for coordinate conversion" })
+    mainCamera: Camera = null;
+
     private currentBall: Node = null;
     private startDragPos: Vec2 = v2();
-    private mainCamera: Camera = null; // Main camera for coordinate conversion
 
     public spawnNewBall() {
         if (!this.ballPrefab || !this.slingshotAnchor) {
@@ -54,7 +61,6 @@ export class PlayerController extends Component {
     onLoad() {
         this.registerInputEvents();
         this.trajectory?.hideTrajectory();
-        this.mainCamera = director.getScene()?.getComponentInChildren(Camera);
     }
 
     onDestroy() {
@@ -82,6 +88,7 @@ export class PlayerController extends Component {
         GameManager.instance.setGameState(GameState.AIMING);
         this.slingshotVisuals?.startAim(this.currentBall);
         this.startDragPos = event.getUILocation();
+        this.audioManager.playStretchSfx();
     }
 
     onTouchMove(event: EventTouch) {
@@ -91,21 +98,8 @@ export class PlayerController extends Component {
 
         const currentDragPos = event.getUILocation();
         
-        // --- FIX ---
-        // Clone startDragPos so the original is not modified by the subtract operation.
         const launchVector = this.startDragPos.clone().subtract(currentDragPos);
         const velocity = v2(launchVector.x, launchVector.y).multiplyScalar(this.launchPower);
-
-        // this.slingshotVisuals?.updateDragPosition();
-
-        //  // Move the ball to follow the drag
-        // if (this.currentBall && this.mainCamera) {
-        //     const worldPos = v3();
-        //     // Convert clamped screen pos back to world pos
-        //     this.mainCamera.screenToWorld(v3(currentDragPos.x, currentDragPos.y, 0), worldPos);
-        //     this.currentBall.setWorldPosition(worldPos);
-        // }
-        // // ----------------------
         
         if (launchVector.lengthSqr() > 100) {
             this.trajectory?.showTrajectory(this.slingshotAnchor.getWorldPosition(), velocity);
@@ -141,6 +135,7 @@ export class PlayerController extends Component {
             const velocity = v2(launchVector.x, launchVector.y).multiplyScalar(this.launchPower);
             // rb.applyLinearImpulseToCenter(velocity, true);
             rb.linearVelocity = velocity;
+            this.audioManager.playShotFiredSfx();
         }
 
         this.currentBall = null;

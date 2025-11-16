@@ -2,6 +2,7 @@ import { _decorator, Component, Label, Sprite, SpriteFrame, Enum, CircleCollider
 import { GameManager } from './GameManager';
 import { LocalizedLabel } from "./LocalizedLabel";
 import { ETextKey } from "./LocalizationData";
+import { AudioManager, ESFXType } from "./AudioManager";
 
 const { ccclass, property } = _decorator;
 
@@ -54,6 +55,9 @@ export class BlockConfig {
 // 3. The main BlockController component
 @ccclass('BlockController')
 export class BlockController extends Component {
+
+    @property({type: AudioManager})
+    audioManager : AudioManager = null;
 
     @property({ type: EBlockType, tooltip: "The type of this block." })
     blockType: EBlockType = EBlockType.NORMAL_COFFEE;
@@ -132,6 +136,26 @@ export class BlockController extends Component {
         if (!this.node.active) return;
         this.node.active = false; // Deactivate instead of destroying
         GameManager.instance?.blockDestroyed(this, this.health, this.node.getPosition());
+        switch(this.blockType){
+            case EBlockType.STONE:
+                this.audioManager.playSFX(ESFXType.EXPLODE);
+                break;
+            case EBlockType.BOOSTER_2X_MULTIPLIER:
+                this.audioManager.playSFX(ESFXType.POWERUP);
+                break;
+            case EBlockType.BOOSTER_COIN_MAGNET:
+                this.audioManager.playSFX(ESFXType.POWERUP);
+                break;
+            case EBlockType.BOOSTER_DOUBLE_BOUNCE:
+                this.audioManager.playSFX(ESFXType.POWERUP);
+                break;
+            case EBlockType.BOOSTER_EXTRA_COINS:
+                this.audioManager.playSFX(ESFXType.POWERUP);
+                break;
+            default:
+                this.audioManager.playSFX(ESFXType.GLASS);
+                break;
+        }
         this.scheduleOnce(this.activateBoosterEffect, 0);
     }
 

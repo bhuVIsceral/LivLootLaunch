@@ -4,7 +4,7 @@ import { LevelController } from "./LevelController";
 import { PlayerController } from './PlayerController';
 import { BlockController } from "./BlockController";
 import { CameraShaker } from './CameraShaker';
-import { AudioManager } from "./AudioManager";
+import { AudioManager, ESFXType } from "./AudioManager";
 import { VFXManager } from "./VFXManager";
 import { EObjectType } from "./Tagger";
 
@@ -232,7 +232,7 @@ export class GameManager extends Component {
             // --- FIX ---
             // Don't change state immediately. Schedule it for the next frame.
             // This prevents physics race conditions.
-            this.scheduleOnce(this.prepareNextTurn, 1);
+            this.scheduleOnce(this.prepareNextTurn, 2);
         }
     }
 
@@ -243,13 +243,12 @@ export class GameManager extends Component {
 
     public addScore(points: number) {
         this.score += points;
-        this.updateUI();
     }
 
     public blockDestroyed(block: BlockController, scoreToAdd: number, blockPosition : Vec3) { // <-- Renamed from tileDestroyed
         this.totalBlocks--;
         this.addScore(scoreToAdd); // Base score
-        this.animateScoreUI(scoreToAdd, blockPosition);
+        if(scoreToAdd > 0) this.animateScoreUI(scoreToAdd, blockPosition);
         // TODO: Add bonus score based on block.getBlockType()
         
         if (this.totalBlocks <= 0) {
@@ -314,6 +313,8 @@ export class GameManager extends Component {
             // After fade out, reset scale and hide
             .call(() => {
                 this.currentScoreCard.setScale(initialScale);
+                this.audioManager.playSFX(ESFXType.COIN);
+                if (this.scoreLabel) this.scoreLabel.string = this.score.toString();
                 tween()
                     .delay(holdDuration)
                 // this.addScore(scoreToAdd); // Base score
@@ -328,7 +329,6 @@ export class GameManager extends Component {
 
     private updateUI() {
         if (this.livesLabel) this.livesLabel.string = `x${this.currentLives}`;
-        if (this.scoreLabel) this.scoreLabel.string = this.score.toString();
     }
 
     private gameOver(isWin: boolean) {
